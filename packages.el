@@ -10,6 +10,11 @@
 
 (package! tldr)
 (package! reverse-im)
+(package! doom-moonfly-theme
+  :recipe (:host github
+           :repo "stackmystack/doom-moonfly-theme"))
+(package! claude-code-ide
+  :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
 
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
 ;; (package! some-package)

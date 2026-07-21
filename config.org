@@ -1,3 +1,7 @@
+#+title: Config
+
+* Visuals
+#+begin_src emacs-lisp
 (setq doom-font (font-spec :family "Ioskeley Mono" :size 18))
 (setq display-line-numbers-type 'visual)
 (setq pixel-scroll-precision-mode t)
@@ -15,20 +19,36 @@
   '(org-document-title :height 1.8 :bold t :underline nil))
 
 (setq doom-theme 'doom-moonfly)
+#+end_src
 
+* Org
+#+begin_src emacs-lisp
 (setq org-directory "~/org/")
+#+end_src
 
+* SQL
+
+
+* Plugins
+** centaur-tabs
+#+begin_src emacs-lisp
 (after! centaur-tabs
   (setq centaur-tabs-height 32
         centaur-tabs-set-bar nil
         centaur-tabs-set-close-button nil))
+#+end_src
 
+** reverse-im
+#+begin_src emacs-lisp
 (use-package! reverse-im
   :custom
   (reverse-im-input-methods '("russian-computer"))
   :config
   (reverse-im-mode t))
+#+end_src
 
+** claude-code-ide
+#+begin_src emacs-lisp
 (use-package! claude-code-ide
   :config
   (claude-code-ide-emacs-tools-setup)
@@ -36,7 +56,10 @@
         :desc "Claude Code"
         "c l" #'claude-code-ide-menu)
   (setq claude-code-ide-terminal-backend 'ghostel))
+#+end_src
 
+* Others
+#+begin_src emacs-lisp
 (setq shell-file-name (executable-find "bash"))
 (setq-default vterm-shell "/bin/fish")
 
@@ -50,3 +73,4 @@
 
 (setq delete-by-moving-to-trash t
       trash-directory "~/.local/share/Trash/files/")
+#+end_src
