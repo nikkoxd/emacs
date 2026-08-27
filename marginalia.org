@@ -1,0 +1,7 @@
+
+* Config
+:PROPERTIES:
+:org-remark-file: config.org
+:END:
+
+** t

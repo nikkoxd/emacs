@@ -8,13 +8,22 @@
 ;;
 ;; Use 'C-h f package\!' to look up documentation for the `package!' macro.
 
-(package! tldr)
+(package! dashboard)
+(package! mood-line)
 (package! reverse-im)
 (package! doom-moonfly-theme
   :recipe (:host github
            :repo "stackmystack/doom-moonfly-theme"))
+(package! shell-maker)
+(package! acp)
+(package! agent-shell)
+(package! agent-shell-tramp
+  :recipe (:host github
+           :repo "junyi-hou/agent-shell-tramp"))
 (package! claude-code-ide
   :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
+(package! org-remark)
+(package! colorful-mode)
 
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
 ;; (package! some-package)
