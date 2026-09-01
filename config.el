@@ -18,6 +18,10 @@
 ;;     mode-line-misc-info))
 ;; (setq mode-line-right-align-edge 'right-margin)
 
+(after! elfeed
+  (setq elfeed-feeds
+        '("https://blancvpnstatus.com/feed.rss")))
+
 (after! agent-shell
   agent-shell-screenshot-command "flameshot gui")
 

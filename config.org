@@ -39,6 +39,12 @@ Load theme:
 ;; (setq mode-line-right-align-edge 'right-margin)
 #+end_src
 * Plugins
+** elfeed
+#+begin_src emacs-lisp
+(after! elfeed
+  (setq elfeed-feeds
+        '("https://blancvpnstatus.com/feed.rss")))
+#+end_src
 ** agent-shell
 #+begin_src emacs-lisp
 (after! agent-shell
