@@ -1,6 +1,5 @@
 #+title: Config
-
-[[file:config.el][Generated config]]
+#+filetags: emacs config
 
 * Visuals
 ** Theme
@@ -11,14 +10,14 @@ Load theme:
 
 ** Fonts
 #+begin_src emacs-lisp
-(setq doom-font (font-spec :family "JetBrains Mono" :size 16))
-(setq doom-variable-pitch-font (font-spec :family "Inter" :size 16))
+(setq doom-font (font-spec :family "IBM Plex Mono" :size 16))
+(setq doom-variable-pitch-font (font-spec :family "IBM Plex Serif" :size 16))
 #+end_src
 
 ** Transparency
 #+begin_src emacs-lisp
-(set-frame-parameter nil 'alpha-background 90)
-(add-to-list 'default-frame-alist '(alpha-background . 90))
+;; (set-frame-parameter nil 'alpha-background 90)
+;; (add-to-list 'default-frame-alist '(alpha-background . 90))
 #+end_src
 
 ** Relative line numbers
@@ -28,22 +27,28 @@ Load theme:
 
 ** Modeline
 #+begin_src emacs-lisp
-;; (setq-default mode-line-format
-;;   '(" %[" (:propertize "%b" face mode-line-buffer-id) "%]"
-;;     " %l:%c"
-;;     mode-line-format-right-align
-;;     (:eval (when (mode-line-window-selected-p)
-;;              (concat (format-mode-line mode-name) " ")))
-;;     (vc-mode vc-mode) " "
-;;     mode-line-misc-info))
-;; (setq mode-line-right-align-edge 'right-margin)
+(set-face-attribute 'mode-line nil :height 120)
+(set-face-attribute 'mode-line-inactive nil :height 120)
+
+(setq-default mode-line-format
+  '(" %[" (:propertize "%b" face mode-line-buffer-id) "%]"
+    mode-line-modified
+    " %l:%c"
+    mode-line-format-right-align
+    (:eval (when (mode-line-window-selected-p)
+             (concat (format-mode-line mode-name) " ")))
+    (vc-mode vc-mode) " "
+    mode-line-misc-info))
+
+(setq mode-line-right-align-edge 'right-margin)
 #+end_src
+
 * Plugins
 ** elfeed
 #+begin_src emacs-lisp
-(after! elfeed
-  (setq elfeed-feeds
-        '("https://blancvpnstatus.com/feed.rss")))
+(setq elfeed-feeds
+      '(("https://blancvpnstatus.com/feed.rss" vpn status)
+        ("https://www.reddit.com/r/unixporn.rss" linux reddit)))
 #+end_src
 ** agent-shell
 #+begin_src emacs-lisp
@@ -153,22 +158,86 @@ Ignore document's own fg/bg colors
   :hook (prog-mode . colorful-mode))
 #+end_src
 * Org
-Set org directory
+** Custom faces
+#+begin_src emacs-lisp
+(custom-set-faces!
+  '(org-document-title :height 1.5 :weight normal :slant italic)
+  '(org-meta-line :slant italic)
+  '(org-link :weight normal :slant italic :underline nil)
+  '(link :weight normal :slant italic :underline nil)
+  '(org-quote :inherit doom-variable-pitch-font :extend t :italic t)
+  '(org-drawer :slant italic)
+  '(org-block :height 0.9)
+  '(org-block-begin-line :height 0.9 :extend t)
+  '(org-block :extend t)
+  '(org-block-end-line :height 0.9 :extend t)
+  '(org-code :height 0.9)
+  '(org-list-dt :inherit org-checkbox)
+  '(org-level-1 :height 1.4 :weight bold :slant italic)
+  '(org-level-2 :height 1.3 :weight normal :slant italic)
+  '(org-level-3 :height 1.2 :weight normal :slant italic)
+  '(org-level-4 :height 1.1 :weight normal :slant italic)
+  '(org-level-5 :height 1.1 :weight normal :slant italic)
+  '(org-level-6 :height 1.1 :weight normal :slant italic)
+  '(org-level-7 :height 1.1 :weight normal :slant italic)
+  '(org-level-8 :height 1.1 :weight normal :slant italic))
+#+end_src
+** Org-modern
+#+begin_src emacs-lisp
+(setq
+ org-modern-list '((?- . "•")
+                   (?+ . "✧")
+                   (?* . "❋"))
+ org-modern-star 'replace
+ org-modern-replace-stars "木火土金水")
+#+end_src
+** Set org directory
 #+begin_src emacs-lisp
 (setq org-directory "~/Notes/"
       org-roam-directory "~/Notes/")
 #+end_src
-
-Org-modern related variables
-#+begin_src emacs-lisp
-(setq org-modern-star 'replace)
-#+end_src
-
-Use variable pitch font as the main font, default font for code blocks
+** Use variable pitch font as the main font, default font for code blocks
 #+begin_src emacs-lisp
 (add-hook 'org-mode-hook #'mixed-pitch-mode)
 #+end_src
+** Fix latex previewing:
+#+begin_src emacs-lisp
+(setq org-preview-latex-default-process 'dvisvgm)
+#+end_src
+** Capture template
+#+begin_src emacs-lisp
+(defvar my/roam-subject nil)
 
+(defun my/roam-read-subject ()
+  (setq my/roam-subject
+        (completing-read
+         "Subject: "
+         (let ((d (expand-file-name "uni" org-roam-directory)))
+           (when (file-directory-p d)
+             (seq-filter (lambda (f)
+                           (file-directory-p (expand-file-name f d)))
+                         (directory-files d nil "\\`[^.]")))))))
+
+(after! org-roam
+  (add-to-list 'org-roam-capture-templates
+               '("l" "uni" plain "%?"
+                 :target (file+head
+                          "lectures/%(my/roam-read-subject)/%<%Y%m%d%H%M%S>-${slug}.org"
+                          "#+title: ${title}\n#+FILETAGS: :Uni:%(or my/roam-subject \"\"):\n")
+                 :unnarrowed t)
+               :append)
+  (setq org-roam-node-display-template
+        (concat "${title:*} "
+                (propertize "${file:32}" 'face 'org-roam-dim)
+                " " (propertize "${tags:20}" 'face 'org-roam-tag)))
+  (setq org-roam-file-exclude-regexp
+        '("\\.st\\(versions\\|folder\\)/" "\\.attach/" "\\.agent-shell/")))
+#+end_src
+
+** Toggle zen-mode on a hook
+#+begin_src emacs-lisp
+(add-hook 'text-mode-hook #'+zen/toggle)
+#+end_src
 * SQL
 #+begin_src emacs-lisp
 (setq sql-connection-alist
@@ -194,6 +263,10 @@ Set =qmlls6= as the executable for qmlls
 #+end_src
 
 * Others
+** Set c++ mode for CUDA
+#+begin_src emacs-lisp
+(add-to-list 'auto-mode-alist '("\.cu$" . c++-mode))
+#+end_src
 ** Fix for gnus
 Fix for gnus on Emacs 31
 #+begin_src emacs-lisp

@@ -1,26 +1,31 @@
 (setq doom-theme 'island)
 
-(setq doom-font (font-spec :family "JetBrains Mono" :size 16))
-(setq doom-variable-pitch-font (font-spec :family "Inter" :size 16))
+(setq doom-font (font-spec :family "IBM Plex Mono" :size 16))
+(setq doom-variable-pitch-font (font-spec :family "IBM Plex Serif" :size 16))
 
-(set-frame-parameter nil 'alpha-background 90)
-(add-to-list 'default-frame-alist '(alpha-background . 90))
+;; (set-frame-parameter nil 'alpha-background 90)
+;; (add-to-list 'default-frame-alist '(alpha-background . 90))
 
 (setq display-line-numbers-type 'visual)
 
-;; (setq-default mode-line-format
-;;   '(" %[" (:propertize "%b" face mode-line-buffer-id) "%]"
-;;     " %l:%c"
-;;     mode-line-format-right-align
-;;     (:eval (when (mode-line-window-selected-p)
-;;              (concat (format-mode-line mode-name) " ")))
-;;     (vc-mode vc-mode) " "
-;;     mode-line-misc-info))
-;; (setq mode-line-right-align-edge 'right-margin)
+(set-face-attribute 'mode-line nil :height 120)
+(set-face-attribute 'mode-line-inactive nil :height 120)
 
-(after! elfeed
-  (setq elfeed-feeds
-        '("https://blancvpnstatus.com/feed.rss")))
+(setq-default mode-line-format
+  '(" %[" (:propertize "%b" face mode-line-buffer-id) "%]"
+    mode-line-modified
+    " %l:%c"
+    mode-line-format-right-align
+    (:eval (when (mode-line-window-selected-p)
+             (concat (format-mode-line mode-name) " ")))
+    (vc-mode vc-mode) " "
+    mode-line-misc-info))
+
+(setq mode-line-right-align-edge 'right-margin)
+
+(setq elfeed-feeds
+      '(("https://blancvpnstatus.com/feed.rss" vpn status)
+        ("https://www.reddit.com/r/unixporn.rss" linux reddit)))
 
 (after! agent-shell
   agent-shell-screenshot-command "flameshot gui")
@@ -84,12 +89,70 @@
 (use-package! colorful-mode
   :hook (prog-mode . colorful-mode))
 
+(custom-set-faces!
+  '(org-document-title :height 1.5 :weight normal :slant italic)
+  '(org-meta-line :slant italic)
+  '(org-link :weight normal :slant italic :underline nil)
+  '(link :weight normal :slant italic :underline nil)
+  '(org-quote :inherit doom-variable-pitch-font :extend t :italic t)
+  '(org-drawer :slant italic)
+  '(org-block :height 0.9)
+  '(org-block-begin-line :height 0.9 :extend t)
+  '(org-block :extend t)
+  '(org-block-end-line :height 0.9 :extend t)
+  '(org-code :height 0.9)
+  '(org-list-dt :inherit org-checkbox)
+  '(org-level-1 :height 1.4 :weight bold :slant italic)
+  '(org-level-2 :height 1.3 :weight normal :slant italic)
+  '(org-level-3 :height 1.2 :weight normal :slant italic)
+  '(org-level-4 :height 1.1 :weight normal :slant italic)
+  '(org-level-5 :height 1.1 :weight normal :slant italic)
+  '(org-level-6 :height 1.1 :weight normal :slant italic)
+  '(org-level-7 :height 1.1 :weight normal :slant italic)
+  '(org-level-8 :height 1.1 :weight normal :slant italic))
+
+(setq
+ org-modern-list '((?- . "•")
+                   (?+ . "✧")
+                   (?* . "❋"))
+ org-modern-star 'replace
+ org-modern-replace-stars "木火土金水")
+
 (setq org-directory "~/Notes/"
       org-roam-directory "~/Notes/")
 
-(setq org-modern-star 'replace)
-
 (add-hook 'org-mode-hook #'mixed-pitch-mode)
+
+(setq org-preview-latex-default-process 'dvisvgm)
+
+(defvar my/roam-subject nil)
+
+(defun my/roam-read-subject ()
+  (setq my/roam-subject
+        (completing-read
+         "Subject: "
+         (let ((d (expand-file-name "uni" org-roam-directory)))
+           (when (file-directory-p d)
+             (seq-filter (lambda (f)
+                           (file-directory-p (expand-file-name f d)))
+                         (directory-files d nil "\\`[^.]")))))))
+
+(after! org-roam
+  (add-to-list 'org-roam-capture-templates
+               '("l" "uni" plain "%?"
+                 :target (file+head
+                          "lectures/%(my/roam-read-subject)/%<%Y%m%d%H%M%S>-${slug}.org"
+                          "#+title: ${title}\n#+FILETAGS: :Uni:%(or my/roam-subject \"\"):\n")
+                 :unnarrowed t)
+               :append)
+  (setq org-roam-node-display-template
+        (concat "${title:*} "
+                (propertize "${file:32}" 'face 'org-roam-dim)
+                " " (propertize "${tags:20}" 'face 'org-roam-tag)))
+  (setq org-roam-file-exclude-regexp
+        '("\\.st\\(versions\\|folder\\)/" "\\.attach/" "\\.agent-shell/")))
+
+(add-hook 'text-mode-hook #'+zen/toggle)
 
 (setq sql-connection-alist
       '((somnium-local-db (sql-product 'postgres)
@@ -107,6 +170,8 @@
 
 (after! lsp-mode
   (setq lsp-qml-server-command "qmlls6"))
+
+(add-to-list 'auto-mode-alist '("\.cu$" . c++-mode))
 
 (defface gnus-group-news-low '((t :inherit default)) "Fix Emacs 31 cycle")
 (defface gnus-group-news-low-empty '((t :inherit default)) "Fix Emacs 31 cycle")
