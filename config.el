@@ -120,12 +120,16 @@
   '(org-level-7 :height 1.1 :weight normal :slant italic)
   '(org-level-8 :height 1.1 :weight normal :slant italic))
 
-(setq
- org-modern-list '((?- . "•")
-                   (?+ . "✧")
-                   (?* . "❋"))
- org-modern-star 'replace
- org-modern-replace-stars "木火土金水")
+(after! org-modern
+  (setq
+   org-modern-list '((?- . "•")
+                     (?+ . "✧")
+                     (?* . "❋"))
+   org-modern-star 'replace
+   org-modern-replace-stars "木火土金水"
+   org-modern-checkbox '((?X . "")
+                         (?- . "")
+                         (?\s . ""))))
 
 (setq org-directory "~/Notes/"
       org-roam-directory "~/Notes/")
