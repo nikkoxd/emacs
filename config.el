@@ -125,6 +125,47 @@
 
 (setq org-preview-latex-default-process 'dvisvgm)
 
+(after! ox-latex
+  (setq org-latex-compiler "xelatex"
+        org-latex-pdf-process
+        '("xelatex -interaction nonstopmode -output-directory %o %f"
+          "xelatex -interaction nonstopmode -output-directory %o %f"))
+
+  (add-to-list 'org-latex-classes
+               '("ru-article"
+                 "\\documentclass{article}
+\\usepackage{fontspec}
+\\usepackage{polyglossia}
+\\setmainlanguage{russian}
+\\setotherlanguage{english}
+\\setmainfont{IBM Plex Serif}
+\\setsansfont{IBM Plex Sans}
+\\setmonofont{IBM Plex Mono}
+[DEFAULT-PACKAGES]
+[PACKAGES]
+[EXTRA]"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+
+(setq org-export-preserve-breaks t)
+
+(setq org-export-default-language "ru"
+      org-export-with-smart-quotes t)
+
+(after! ox
+  (setf (alist-get "ru" org-export-smart-quotes-alist nil nil #'equal)
+        '((primary-opening   :utf-8 "«" :html "&laquo;" :latex "«" :texinfo "@guillemetleft{}")
+          (primary-closing   :utf-8 "»" :html "&raquo;" :latex "»" :texinfo "@guillemetright{}")
+          (secondary-opening :utf-8 "„" :html "&bdquo;" :latex "„" :texinfo "@quotedblbase{}")
+          (secondary-closing :utf-8 "“" :html "&ldquo;" :latex "“" :texinfo "@quotedblleft{}")
+          (apostrophe        :utf-8 "’" :html "&#39;"   :latex "’"))))
+
+(after! org
+  (add-to-list 'org-file-apps '("\\.pdf\\'" . "xdg-open %s")))
+
 (defvar my/roam-subject nil)
 
 (defun my/roam-read-subject ()
@@ -142,7 +183,7 @@
                '("l" "uni" plain "%?"
                  :target (file+head
                           "lectures/%(my/roam-read-subject)/%<%Y%m%d%H%M%S>-${slug}.org"
-                          "#+title: ${title}\n#+FILETAGS: :Uni:%(or my/roam-subject \"\"):\n")
+                          "#+title: ${title}\n#+LATEX_CLASS: ru-article\n#+LATEX_CLASS_OPTIONS: [letterpaper]\n#+OPTIONS: toc:t\n#+FILETAGS: :Uni:%(or my/roam-subject \"\"):\n")
                  :unnarrowed t)
                :append)
   (setq org-roam-node-display-template
