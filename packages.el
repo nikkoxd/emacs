@@ -24,6 +24,7 @@
   :recipe (:host github :repo "manzaltu/claude-code-ide.el"))
 (package! org-remark)
 (package! colorful-mode)
+(package! telega)
 
 ;; To install SOME-PACKAGE from MELPA, ELPA or emacsmirror:
 ;; (package! some-package)

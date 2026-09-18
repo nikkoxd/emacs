@@ -23,6 +23,8 @@
 
 (setq mode-line-right-align-edge 'right-margin)
 
+(setq +fold-ellipsis "...")
+
 (setq elfeed-feeds
       '(("https://blancvpnstatus.com/feed.rss" vpn status)
         ("https://www.reddit.com/r/unixporn.rss" linux reddit)))
@@ -89,6 +91,13 @@
 (use-package! colorful-mode
   :hook (prog-mode . colorful-mode))
 
+(add-hook 'telega-load-hook 'telega-notifications-mode)
+(setq telega-use-docker t
+      telega-emoji-use-images nil
+      telega-unread-chat-temex '(and main unread unmuted))
+(map! :leader
+      :desc "Telega" "t t" telega-prefix-map)
+
 (custom-set-faces!
   '(org-document-title :height 1.5 :weight normal :slant italic)
   '(org-meta-line :slant italic)
@@ -120,6 +129,23 @@
 
 (setq org-directory "~/Notes/"
       org-roam-directory "~/Notes/")
+
+(setq org-yank-image-save-method (expand-file-name "images/" org-directory)
+      org-yank-dnd-method 'file
+      org-image-actual-width '(600)
+      org-startup-with-inline-images t)
+
+(defun +my/org-paste-media ()
+  "Insert an image from the system clipboard, or paste text if there is none."
+  (interactive)
+  (condition-case nil
+      (yank-media)
+    (error (clipboard-yank))))
+
+(map! :map org-mode-map
+      :gni "C-S-v" #'+my/org-paste-media
+      :localleader
+      :desc "Paste image" "v" #'+my/org-paste-media)
 
 (add-hook 'org-mode-hook #'mixed-pitch-mode)
 

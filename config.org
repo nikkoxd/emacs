@@ -42,6 +42,10 @@ Load theme:
 
 (setq mode-line-right-align-edge 'right-margin)
 #+end_src
+** Fold ellipsis
+#+begin_src emacs-lisp
+(setq +fold-ellipsis "...")
+#+end_src
 
 * Plugins
 ** elfeed
@@ -157,6 +161,15 @@ Ignore document's own fg/bg colors
 (use-package! colorful-mode
   :hook (prog-mode . colorful-mode))
 #+end_src
+** telega
+#+begin_src emacs-lisp
+(add-hook 'telega-load-hook 'telega-notifications-mode)
+(setq telega-use-docker t
+      telega-emoji-use-images nil
+      telega-unread-chat-temex '(and main unread unmuted))
+(map! :leader
+      :desc "Telega" "t t" telega-prefix-map)
+#+end_src
 * Org
 ** Custom faces
 #+begin_src emacs-lisp
@@ -195,6 +208,29 @@ Ignore document's own fg/bg colors
 #+begin_src emacs-lisp
 (setq org-directory "~/Notes/"
       org-roam-directory "~/Notes/")
+#+end_src
+** Paste images from the clipboard
+Org 9.7+ registers a ~yank-media~ handler that writes clipboard images to disk
+and inserts a link to them. Save them next to the notes instead of attaching
+them to a heading, so no ~ID~ drawer is created. ~C-S-v~ falls back to a normal
+paste when the clipboard holds text.
+#+begin_src emacs-lisp
+(setq org-yank-image-save-method (expand-file-name "images/" org-directory)
+      org-yank-dnd-method 'file
+      org-image-actual-width '(600)
+      org-startup-with-inline-images t)
+
+(defun +my/org-paste-media ()
+  "Insert an image from the system clipboard, or paste text if there is none."
+  (interactive)
+  (condition-case nil
+      (yank-media)
+    (error (clipboard-yank))))
+
+(map! :map org-mode-map
+      :gni "C-S-v" #'+my/org-paste-media
+      :localleader
+      :desc "Paste image" "v" #'+my/org-paste-media)
 #+end_src
 ** Use variable pitch font as the main font, default font for code blocks
 #+begin_src emacs-lisp
