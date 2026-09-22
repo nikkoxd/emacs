@@ -1,6 +1,6 @@
 (setq doom-theme 'island)
 
-(setq doom-font (font-spec :family "IBM Plex Mono" :size 16))
+(setq doom-font (font-spec :family "Ioskeley Mono" :size 16))
 (setq doom-variable-pitch-font (font-spec :family "IBM Plex Serif" :size 16))
 
 ;; (set-frame-parameter nil 'alpha-background 90)
@@ -43,17 +43,17 @@
         dashboard-image-banner-max-height 300))
 (setq initial-buffer-choice 'dashboard-open)
 
-(defvar +dashboard-banner-directory (expand-file-name "banners" doom-user-dir))
+;; (defvar +dashboard-banner-directory (expand-file-name "banners" doom-user-dir))
 
-(defun +dashboard-refresh-banners-h ()
-  "Set `dashboard-startup-banner' to the images in `+dashboard-banner-directory'."
-  (setq dashboard-startup-banner
-        (or (and (file-directory-p +dashboard-banner-directory)
-                 (directory-files +dashboard-banner-directory t
-                                  "\\.\\(png\\|gif\\|jpe?g\\|svg\\|xbm\\|txt\\)\\'"))
-            'official)))
+;; (defun +dashboard-refresh-banners-h ()
+;;   "Set `dashboard-startup-banner' to the images in `+dashboard-banner-directory'."
+;;   (setq dashboard-startup-banner
+;;         (or (and (file-directory-p +dashboard-banner-directory)
+;;                  (directory-files +dashboard-banner-directory t
+;;                                   "\\.\\(png\\|gif\\|jpe?g\\|svg\\|xbm\\|txt\\)\\'"))
+;;             'official)))
 
-(add-hook 'dashboard-before-initialize-hook #'+dashboard-refresh-banners-h)
+;; (add-hook 'dashboard-before-initialize-hook #'+dashboard-refresh-banners-h)
 
 (after! shr
   (setq shr-use-colors nil))
@@ -90,13 +90,6 @@
 
 (use-package! colorful-mode
   :hook (prog-mode . colorful-mode))
-
-(add-hook 'telega-load-hook 'telega-notifications-mode)
-(setq telega-use-docker t
-      telega-emoji-use-images nil
-      telega-unread-chat-temex '(and main unread unmuted))
-(map! :leader
-      :desc "Telega" "t t" telega-prefix-map)
 
 (custom-set-faces!
   '(org-document-title :height 1.5 :weight normal :slant italic)

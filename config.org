@@ -10,7 +10,7 @@ Load theme:
 
 ** Fonts
 #+begin_src emacs-lisp
-(setq doom-font (font-spec :family "IBM Plex Mono" :size 16))
+(setq doom-font (font-spec :family "Ioskeley Mono" :size 16))
 (setq doom-variable-pitch-font (font-spec :family "IBM Plex Serif" :size 16))
 #+end_src
 
@@ -77,17 +77,17 @@ Pick a random banner from =banners/=. The directory is rescanned before every
 dashboard render, so new images are picked up without restarting Emacs. Falls
 back to the official Emacs logo when the directory is empty or missing.
 #+begin_src emacs-lisp
-(defvar +dashboard-banner-directory (expand-file-name "banners" doom-user-dir))
+;; (defvar +dashboard-banner-directory (expand-file-name "banners" doom-user-dir))
 
-(defun +dashboard-refresh-banners-h ()
-  "Set `dashboard-startup-banner' to the images in `+dashboard-banner-directory'."
-  (setq dashboard-startup-banner
-        (or (and (file-directory-p +dashboard-banner-directory)
-                 (directory-files +dashboard-banner-directory t
-                                  "\\.\\(png\\|gif\\|jpe?g\\|svg\\|xbm\\|txt\\)\\'"))
-            'official)))
+;; (defun +dashboard-refresh-banners-h ()
+;;   "Set `dashboard-startup-banner' to the images in `+dashboard-banner-directory'."
+;;   (setq dashboard-startup-banner
+;;         (or (and (file-directory-p +dashboard-banner-directory)
+;;                  (directory-files +dashboard-banner-directory t
+;;                                   "\\.\\(png\\|gif\\|jpe?g\\|svg\\|xbm\\|txt\\)\\'"))
+;;             'official)))
 
-(add-hook 'dashboard-before-initialize-hook #'+dashboard-refresh-banners-h)
+;; (add-hook 'dashboard-before-initialize-hook #'+dashboard-refresh-banners-h)
 #+end_src
 ** shr
 Ignore document's own fg/bg colors
@@ -160,15 +160,6 @@ Ignore document's own fg/bg colors
 #+begin_src emacs-lisp
 (use-package! colorful-mode
   :hook (prog-mode . colorful-mode))
-#+end_src
-** telega
-#+begin_src emacs-lisp
-(add-hook 'telega-load-hook 'telega-notifications-mode)
-(setq telega-use-docker t
-      telega-emoji-use-images nil
-      telega-unread-chat-temex '(and main unread unmuted))
-(map! :leader
-      :desc "Telega" "t t" telega-prefix-map)
 #+end_src
 * Org
 ** Custom faces

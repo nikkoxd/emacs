@@ -10,9 +10,9 @@
 :PROPERTIES:
 :org-remark-id: 93516674
 :org-remark-label: nil
-:org-remark-beg: 4809
-:org-remark-end: 4810
-:org-remark-link: [[file:config.org::171]]
+:org-remark-beg: 4175
+:org-remark-end: 4176
+:org-remark-link: [[file:config.org::152]]
 :org-remark-original-text: t
 :END:
 
@@ -20,9 +20,9 @@
 :PROPERTIES:
 :org-remark-id: d5a954eb
 :org-remark-label: nil
-:org-remark-beg: 4809
-:org-remark-end: 4810
-:org-remark-link: [[file:config.org::171]]
+:org-remark-beg: 4175
+:org-remark-end: 4176
+:org-remark-link: [[file:config.org::152]]
 :org-remark-original-text: t
 :END:
 
@@ -30,8 +30,8 @@
 :PROPERTIES:
 :org-remark-id: 1e58798f
 :org-remark-label: nil
-:org-remark-beg: 4809
-:org-remark-end: 4810
-:org-remark-link: [[file:config.org::171]]
+:org-remark-beg: 4175
+:org-remark-end: 4176
+:org-remark-link: [[file:config.org::152]]
 :org-remark-original-text: t
 :END:
