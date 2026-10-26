@@ -18,11 +18,24 @@ Load theme:
 #+begin_src emacs-lisp
 ;; (set-frame-parameter nil 'alpha-background 90)
 ;; (add-to-list 'default-frame-alist '(alpha-background . 90))
+;; Toggle transparency
+(defvar +my/transparency-alpha 90
+  "Alpha-background used when transparency is on.")
+(defun +my/toggle-transparency ()
+  "Toggle frame background transparency."
+  (interactive)
+  (let ((alpha (if (eq (or (frame-parameter nil 'alpha-background) 100) 100)
+                   +my/transparency-alpha
+                 100)))
+    (set-frame-parameter nil 'alpha-background alpha)
+    (message "Transparency %s" (if (= alpha 100) "off" "on"))))
+(map! :leader
+      :desc "Transparency" "t t" #'+my/toggle-transparency)
 #+end_src
 
 ** Relative line numbers
 #+begin_src emacs-lisp
-(setq display-line-numbers-type 'visual)
+(setq display-line-numbers-type 'relative)
 #+end_src
 
 ** Modeline
@@ -48,6 +61,48 @@ Load theme:
 #+end_src
 
 * Plugins
+** spelling checker
+#+begin_src emacs-lisp
+(after! ispell
+  (setq ispell-program-name "hunspell"
+        ispell-dictionary "ru_RU,en_US"
+        ispell-personal-dictionary (expand-file-name "dict/personal.dic" doom-user-dir))
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic "ru_RU,en_US"))
+#+end_src
+** word completion
+Dictionary completion in text modes via look(1) over =dict/words.txt=
+(rebuild with =dict/build.sh=).
+#+begin_src emacs-lisp
+(defvar +dict-file (expand-file-name "dict/words.txt" doom-user-dir)
+  "Lowercased, LC_ALL=C sorted word list used by `+dict-capf'.")
+
+(defvar +dict-limit 200
+  "Maximum number of candidates returned by `+dict-capf'.")
+
+(defun +dict-capf ()
+  "Complete word at point from `+dict-file', keeping the typed prefix's case."
+  (when-let* ((bounds (bounds-of-thing-at-point 'word))
+              ((< (car bounds) (point)))
+              ((file-readable-p +dict-file)))
+    (let* ((beg (car bounds))
+           (prefix (buffer-substring-no-properties beg (point)))
+           (len (length prefix)))
+      (list beg (cdr bounds)
+            (mapcar (lambda (word) (concat prefix (substring word len)))
+                    (take +dict-limit
+                          (process-lines-ignore-status
+                           "look" (downcase prefix) +dict-file)))
+            :exclusive 'no))))
+
+;; Replaces the built-in `ispell-completion-at-point'
+(setq text-mode-ispell-word-completion nil)
+
+(add-hook! 'text-mode-hook
+  (defun +dict-add-capf-h ()
+    (add-hook 'completion-at-point-functions
+              (cape-capf-buster #'+dict-capf) 30 t)))
+#+end_src
 ** elfeed
 #+begin_src emacs-lisp
 (setq elfeed-feeds
@@ -162,6 +217,13 @@ Ignore document's own fg/bg colors
   :hook (prog-mode . colorful-mode))
 #+end_src
 * Org
+** Toggle pretty entities
+#+begin_src emacs-lisp
+(setq org-startup-with-latex-preview t)
+(map! :map org-mode-map
+      :leader
+      :desc "Toggle pretty entities" "t p" #'org-toggle-pretty-entities)
+#+end_src
 ** Custom faces
 #+begin_src emacs-lisp
 (custom-set-faces!
@@ -233,7 +295,43 @@ paste when the clipboard holds text.
 #+end_src
 ** Fix latex previewing:
 #+begin_src emacs-lisp
-(setq org-preview-latex-default-process 'dvisvgm)
+;; org-latex-compiler is xelatex, so the preview header pulls in fontspec,
+;; which the stock dvisvgm process (plain latex) can't load. Compile previews
+;; with xelatex to .xdv instead and convert that with dvisvgm.
+(after! org
+  (add-to-list 'org-preview-latex-process-alist
+               '(xdvisvgm
+                 :programs ("xelatex" "dvisvgm")
+                 :description "xdv > svg"
+                 :message "you need to install xelatex and dvisvgm."
+                 :image-input-type "xdv"
+                 :image-output-type "svg"
+                 :image-size-adjust (1.7 . 1.5)
+                 :latex-compiler ("xelatex -no-pdf -interaction nonstopmode -output-directory %o %f")
+                 :image-converter ("dvisvgm %f --no-fonts --exact-bbox --scale=%S --output=%O")))
+  (setq org-preview-latex-default-process 'xdvisvgm)
+  ;; Transparent: the default bg is taken from the global default face, which
+  ;; doesn't match the buffer's background and leaves a visible box.
+  (setq org-format-latex-options
+        (plist-put (plist-put org-format-latex-options :scale 2)
+                   :background "Transparent")
+        ;; The pretty module turns this on; toggle with SPC t p instead.
+        org-pretty-entities nil)
+
+  ;; Native LaTeX highlighting paints environments with the extended org-block
+  ;; background, which shows through the transparent preview as a full-width
+  ;; bar. Mask it with the default face, only while the preview is shown.
+  (defadvice! my/org-latex-preview-mask-block-bg-a (beg end &rest _)
+    :after #'org--make-preview-overlay
+    (dolist (ov (overlays-at beg))
+      (when (eq (overlay-get ov 'org-overlay-type) 'org-latex-overlay)
+        (overlay-put ov 'face 'default)))
+    ;; The bar past the image comes from the trailing newline's face.
+    (when (eq (char-after end) ?\n)
+      (let ((ov (make-overlay end (1+ end))))
+        (overlay-put ov 'org-overlay-type 'org-latex-overlay)
+        (overlay-put ov 'evaporate t)
+        (overlay-put ov 'face '(:inherit default :extend t))))))
 #+end_src
 ** LaTeX/PDF export with Cyrillic
 #+begin_src emacs-lisp
@@ -253,6 +351,42 @@ paste when the clipboard holds text.
 \\setmainfont{IBM Plex Serif}
 \\setsansfont{IBM Plex Sans}
 \\setmonofont{IBM Plex Mono}
+[DEFAULT-PACKAGES]
+[PACKAGES]
+[EXTRA]"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+  (add-to-list 'org-latex-classes
+               '("gost-report"
+                 "\\documentclass[14pt]{extarticle}
+\\usepackage{fontspec}
+\\usepackage{polyglossia}
+\\setmainlanguage{russian}
+\\setotherlanguage{english}
+\\setmainfont{Times New Roman}
+\\newfontfamily\\cyrillicfont{Times New Roman}
+\\usepackage{geometry}
+\\geometry{a4paper,left=30mm,right=10mm,top=20mm,bottom=20mm}
+\\usepackage{setspace}
+\\onehalfspacing
+\\usepackage{indentfirst}
+\\newlength{\\gostindent}
+\\setlength{\\gostindent}{1.5cm}
+\\setlength{\\parindent}{\\gostindent}
+\\usepackage{caption}
+\\captionsetup{justification=centering,labelsep=endash,font=normalsize}
+\\usepackage{enumitem}
+\\setlist{nosep}
+\\setlist[enumerate]{label=\\arabic*),leftmargin=0pt,itemindent=\\gostindent}
+\\usepackage{titlesec}
+\\titleformat{\\section}{\\normalfont\\normalsize\\bfseries}{}{0pt}{\\rule{\\gostindent}{0pt}}
+\\titlespacing{\\section}{0pt}{1\\baselineskip}{0.5\\baselineskip}
+\\titleformat{\\subsection}{\\normalfont\\normalsize\\bfseries}{}{0pt}{\\rule{\\gostindent}{0pt}}
+\\titlespacing{\\subsection}{0pt}{1\\baselineskip}{0.5\\baselineskip}
 [DEFAULT-PACKAGES]
 [PACKAGES]
 [EXTRA]"
@@ -314,6 +448,119 @@ paste when the clipboard holds text.
         '("\\.st\\(versions\\|folder\\)/" "\\.attach/" "\\.agent-shell/")))
 #+end_src
 
+** Capture template for GOST report title page
+#+begin_src emacs-lisp
+(defun my/gost-titlepage-latex (work discipline topic students checker-pos checker-name city year)
+  "Build the GOST titlepage LaTeX export block.
+STUDENTS is a list of (GROUP . NAME) conses."
+  (concat
+   "#+begin_export latex\n"
+   "\\begin{titlepage}\n"
+   "\\begin{center}\n"
+   "МИНОБРНАУКИ РОССИИ\\\\\n"
+   "Федеральное государственное бюджетное образовательное учреждение\\\\\n"
+   "высшего образования\\\\\n"
+   "«Ижевский государственный технический университет имени М.\\,Т.\\ Калашникова»\\\\\n"
+   "Факультет «Информационные технологии, радиоэлектроника и приборостроение»\\\\\n"
+   "Кафедра «Программное обеспечение»\n"
+   "\\end{center}\n\n"
+   "\\vspace{4cm}\n\n"
+   "\\begin{center}\n"
+   "Отчет\\\\\n"
+   (or work "")
+   (if (or (null discipline) (string-empty-p discipline)) "" (concat "\\\\\nпо дисциплине «" discipline "»"))
+   (if (or (null topic) (string-empty-p topic)) "" (concat "\\\\\nна тему «" topic "»"))
+   "\n\\end{center}\n\n"
+   "\\vfill\n\n"
+   "\\noindent " (if (= (length students) 1) "Выполнил" "Выполнили") ":\\\\[2mm]\n"
+   (let ((n (length students))
+         (i 0))
+     (mapconcat (lambda (s)
+                  (setq i (1+ i))
+                  (concat "студент гр. " (car s) " \\hfill " (cdr s)
+                          (if (= i n) "\\\\[4mm]" "\\\\")))
+                students "\n"))
+   "\nПроверил:\\\\[2mm]\n"
+   (or checker-pos "") " \\hfill " (or checker-name "") "\\\\\n\n"
+   "\\vfill\n\n"
+   "\\begin{center}\n"
+   (or city "") " " (or year "") "\n"
+   "\\end{center}\n"
+   "\\end{titlepage}\n"
+   "#+end_export\n"))
+
+;;; #+KEYWORD lines filled in by hand, expanded on export
+(defun my/gost-kw (name)
+  "Value of the first #+NAME: keyword line in the current buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward (format "^#\\+%s:[ \t]*\\(.*\\)$" (regexp-quote name)) nil t)
+      (match-string-no-properties 1))))
+
+(defun my/gost-kw-all (name)
+  "Values of every #+NAME: keyword line in the current buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (let (res)
+      (while (re-search-forward (format "^#\\+%s:[ \t]*\\(.*\\)$" (regexp-quote name)) nil t)
+        (push (match-string-no-properties 1) res))
+      (nreverse res))))
+
+(defun my/gost-split-pair (s)
+  "Split \"a | b\" into (\"a\" . \"b\"), trimmed."
+  (let ((parts (split-string (or s "") "|")))
+    (cons (string-trim (or (nth 0 parts) "")) (string-trim (or (nth 1 parts) "")))))
+
+(defun my/gost-export-titlepage (backend)
+  "Replace a #+GOST_TITLEPAGE: line with a titlepage built from #+TYPE/#+DISCIPLINE/... keywords."
+  (when (org-export-derived-backend-p backend 'latex)
+    (goto-char (point-min))
+    (when (re-search-forward "^#\\+GOST_TITLEPAGE:.*$" nil t)
+      (let ((beg (match-beginning 0))
+            (end (match-end 0))
+            (checker (my/gost-split-pair (my/gost-kw "CHECKER"))))
+        (let ((replacement
+               (my/gost-titlepage-latex
+                (my/gost-kw "TYPE")
+                (my/gost-kw "DISCIPLINE")
+                (my/gost-kw "TOPIC")
+                (mapcar #'my/gost-split-pair (my/gost-kw-all "STUDENT"))
+                (car checker) (cdr checker)
+                (my/gost-kw "CITY")
+                (my/gost-kw "YEAR"))))
+          (delete-region beg end)
+          (goto-char beg)
+          (insert replacement))))))
+
+(add-hook 'org-export-before-parsing-hook #'my/gost-export-titlepage)
+
+(defun my/gost-report-yas-hook ()
+  "In a fresh `gost-report' capture, expand the keyword block as a yasnippet
+so the fields can be filled by tabbing through them, like a LaTeX macro call."
+  (when (equal (plist-get org-capture-plist :key) "r")
+    (yas-expand-snippet
+     "#+TYPE: ${1:по лабораторной работе №1}
+#+DISCIPLINE: ${2:Дисциплина}
+#+TOPIC: ${3:Тема}
+#+STUDENT: ${4:М26-191-2} | ${5:Некрасов В.В.}
+#+CHECKER: ${6:д.э.н., доцент} | ${7:Леонов М.В.}
+#+CITY: ${8:Ижевск}
+#+YEAR: ${9:`(format-time-string \"%Y\")`}
+#+GOST_TITLEPAGE: yes
+$0")))
+
+(add-hook 'org-capture-mode-hook #'my/gost-report-yas-hook)
+
+(after! org-roam
+  (add-to-list 'org-roam-capture-templates
+               '("r" "report" plain ""
+                 :target (file+head
+                          "%<%Y%m%d%H%M%S>-${slug}.org"
+                          "#+title: ${title}\n#+LATEX_CLASS: gost-report\n#+OPTIONS: title:nil toc:nil num:nil \\n:nil\n#+FILETAGS: :Uni:Reports:\n")
+                 :unnarrowed t)
+               :append))
+#+end_src
+
 ** Toggle zen-mode on a hook
 #+begin_src emacs-lisp
 (add-hook 'text-mode-hook #'+zen/toggle)
@@ -336,10 +583,63 @@ paste when the clipboard holds text.
 #+end_src
 
 * LSP
-Set =qmlls6= as the executable for qmlls
 #+begin_src emacs-lisp
 (after! lsp-mode
   (setq lsp-qml-server-command "qmlls6"))
+
+(add-to-list 'auto-mode-alist '("\\.typ\\'" . typst-ts-mode))
+(add-hook 'typst-ts-mode-local-vars-hook #'lsp! 'append)
+
+(setq typst-ts-math-script-display '(nil . nil))
+(custom-set-faces!
+  '(typst-ts-superscript-face :height 1.0)
+  '(typst-ts-subscript-face :height 1.0))
+#+end_src
+
+** New typst report from template
+Creates =reports/NAME/report.typ= from =reports/_template/template.typ= (=SPC n T=).
+#+begin_src emacs-lisp
+(defvar my/typst-reports-dir "~/Notes/reports/"
+  "Directory holding one folder per Typst report, plus the shared `_template'.")
+
+(defun my/typst-report-new (name)
+  "Create reports/NAME/report.typ using the shared template and fill its fields.
+Fields are yasnippet stops, like the org GOST report capture."
+  (interactive "sReport folder (e.g. tenenev-lab2): ")
+  (let* ((dir (expand-file-name name my/typst-reports-dir))
+         (file (expand-file-name "report.typ" dir)))
+    (when (file-exists-p file)
+      (user-error "%s already exists" file))
+    (make-directory (expand-file-name "Screenshots" dir) t)
+    (find-file file)
+    (yas-expand-snippet
+     "#import \"../template.typ\": *
+
+#show: report.with(
+  type: \"${1:по лабораторной работе №1}\",
+  discipline: \"${2:Дисциплина}\",
+  topic: \"${3:Тема}\",
+  faculty: \"${4:Информационные технологии, радиоэлектроника и приборостроение}\",
+  department: \"${5:Программное обеспечение}\",
+  students: ((group: \"${6:М26-191-1}\", name: \"${7:Некрасов В.В.}\"),),
+  checker: (position: \"${8:д.ф.-м.н., профессор}\", name: \"${9:Тененев В.А.}\"),
+)
+
+#unnumbered[ВВЕДЕНИЕ]
+
+$0
+
+#unnumbered[ЗАКЛЮЧЕНИЕ]
+
+
+
+#literature(
+  [],
+)
+")))
+
+(map! :leader
+      :desc "New typst report" "n T" #'my/typst-report-new)
 #+end_src
 
 * Others
@@ -398,6 +698,40 @@ variable can appear more than once; keep only the last (inherited) entry."
 (mapc #'+my/unshadow-envvar
       '("HYPRLAND_INSTANCE_SIGNATURE" "HYPRLAND_CMD" "HL_INITIAL_WORKSPACE_TOKEN"
         "WAYLAND_DISPLAY" "XDG_ACTIVATION_TOKEN" "TMUX" "TMUX_PANE" "COLUMNS"))
+#+end_src
+** Double space inserts a period
+Like on macOS and phones: two quick spaces after a word turn into ". ".
+Only in text buffers, and not inside org src blocks.
+#+begin_src emacs-lisp
+(defvar +my/double-space-period-delay 0.5
+  "Max seconds between two spaces for them to become a period.")
+
+(defvar-local +my/double-space-period--last nil
+  "Time of the last space typed, or nil.")
+
+(defun +my/double-space-period--maybe ()
+  "Replace \"word  \" with \"word. \" when two spaces are typed quickly."
+  (if (not (eq last-command-event ?\s))
+      (setq +my/double-space-period--last nil)
+    (let ((last +my/double-space-period--last))
+      (if (and last
+               (< (float-time (time-since last)) +my/double-space-period-delay)
+               (looking-back "[[:alnum:])»\"'”]  " (- (point) 3))
+               (not (and (derived-mode-p 'org-mode) (org-in-src-block-p))))
+          (progn
+            (delete-char -2)
+            (insert ". ")
+            (setq +my/double-space-period--last nil))
+        (setq +my/double-space-period--last (current-time))))))
+
+(define-minor-mode +my/double-space-period-mode
+  "Insert a period when space is typed twice quickly."
+  :lighter nil
+  (if +my/double-space-period-mode
+      (add-hook 'post-self-insert-hook #'+my/double-space-period--maybe nil t)
+    (remove-hook 'post-self-insert-hook #'+my/double-space-period--maybe t)))
+
+(add-hook 'text-mode-hook #'+my/double-space-period-mode)
 #+end_src
 ** Truly others
 #+begin_src emacs-lisp
